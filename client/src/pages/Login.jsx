@@ -1,134 +1,165 @@
-import React from "react";
-import { useFormik } from "formik";
-import * as Yup from "yup";
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
+import { useDispatch } from 'react-redux';
+import api, { getCsrfCookie } from '../utils/api';
+import { authActions } from '../store/auth-slice';
+import { Eye, EyeOff } from 'lucide-react';
 
-import { MdEmail } from "react-icons/md";
-import { FiLogIn } from 'react-icons/fi'
-import { RiLockPasswordFill } from "react-icons/ri";
-import { Link } from "react-router-dom";
-import { useDispatch, useSelector } from 'react-redux';
-import { login } from '../store/actions/auth-actions';
-import TheSpinner from "../layout/TheSpinner";
-
-
-
-const containerVariants = {
-  hidden: {
-    opacity: 0
-  },
-  visible: {
-    opacity: 1,
-    transition: { duration: .3 }
-  },
-  exit: {
-    x: '-100vw',
-    transition: { ease: 'easeInOut' }
-  }
-};
-
-
-
+// Imported react-toastify for clean alert notifications
+import { toast } from 'react-toastify'; 
 
 const Login = () => {
+  const navigate = useNavigate();
   const dispatch = useDispatch();
-  const loading = useSelector((state) => state.ui.loginLoading);
 
-  const formik = useFormik({
-    initialValues: {
-      email: "",
-      password: "",
-    },
-    validationSchema: Yup.object({
-      email: Yup.string().email("Invalid email address").required("Required"),
-      password: Yup.string().required("Required"),
-    }),
-    onSubmit: async (values) => {
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [loginType, setLoginType] = useState('email');
+  const [loading, setLoading] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(true);
+  
+  const [formData, setFormData] = useState({ name: '', email: '', password: '', password_confirmation: '', phone: '' });
+  const [otp, setOtp] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
 
-      try {
-        await dispatch(login(values));
-      } catch (error) {
-        console.log(error);
-      }
-      
-    },
-  });
+  // Check for logout message from session storage when component mounts
+useEffect(() => {
+    const logoutMessage = sessionStorage.getItem('logout_toast');
+    if (logoutMessage) {
+      toast.success(logoutMessage);
+      sessionStorage.removeItem('logout_toast');
+    }
+  }, []);
+
+  const isFormValid = isSignUp 
+    ? (formData.name && formData.email.includes('@') && formData.password.length >= 6 && formData.password === formData.password_confirmation)
+    : (formData.email.includes('@') && formData.password.length >= 6);
+
+  const isButtonDisabled = loading || !termsAccepted || (loginType === 'email' ? !isFormValid : formData.phone.length !== 10);
+
+  // Handle Authentication (Sign In / Register) securely
+  const handleAuth = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      await getCsrfCookie();
+      const payload = isSignUp ? formData : { email: formData.email, password: formData.password };
+      const res = await api.post(isSignUp ? '/api/customer/register' : '/api/customer/login', payload);
+      handleLoginSuccess(res.data);
+    } catch (err) {
+      const msg = err.response?.data?.errors ? Object.values(err.response.data.errors)[0][0] : (err.response?.data?.message || "Authentication Failed");
+      toast.error(msg);
+    } finally { setLoading(false); }
+  };
+
+  // Handle Google OAuth Authentication Success
+  const handleGoogleSuccess = async (credentialResponse) => {
+    setLoading(true);
+    try {
+      const res = await api.post('/api/customer/auth/google', { token: credentialResponse.credential });
+      handleLoginSuccess(res.data);
+    } catch (error) { 
+      toast.error("Google Login Failed"); 
+    }
+    finally { setLoading(false); }
+  };
+
+  // Handle Successful Login & Store User Profiles/Permissions locally for layout rendering
+  const handleLoginSuccess = (data) => {
+    toast.success(isSignUp ? "Account created successfully!" : "Login successful!");
+
+    const userData = data.customer || data.user;
+
+    localStorage.setItem('customer_token', data.token);
+    localStorage.setItem('user', JSON.stringify(userData));
+    
+    dispatch(authActions.customerLogin({ token: data.token, customer: userData }));
+    
+    navigate('/', { replace: true });
+  };
 
   return (
-    <motion.div className="w-[80%] mx-auto mt-40 mb-52"
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-      exit="exit"
-    >
-      <div className="w-[320px] sm:w-[400px] rounded shadow-xl border-2 border-solid px-4 sm:px-8 py-20 mx-auto">
-        <h2 className="text-3xl uppercase tracking-wider font-bold text-center mb-12 select-none">
-          <span className="text-primary">future</span>
-          <span className="text-secondary-200">shop</span>
-        </h2>
-        {loading ? <TheSpinner /> : 
-        <form onSubmit={formik.handleSubmit}>
-          <div className="flex flex-col space-y-1 mb-4">
-            <label htmlFor="email" className="font-semibold tracking-wider">
-              Email
-            </label>
-            <div className="flex py-1">
-              <span className="flex items-center justify-center border border-gray-300 border-r-0 py-2 px-3 bg-gray-300  text-black">
-                <MdEmail />
-              </span>
-              <input
-                type="email"
-                name="email"
-                id="email"
-                onChange={formik.handleChange}
-                onBlur={formik.handleBlur}
-                value={formik.values.email}
-                className="form-input rounded-r w-full"
-                placeholder="example@domain.com"
-              />
+    <GoogleOAuthProvider clientId="454202103503-s5h9rhlj6kp5fqi7gctve6165jr85ib5.apps.googleusercontent.com">
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center pt-10 px-4">
+        <div className="text-2xl font-bold text-blue-600 mb-8">MySHOP</div>
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} 
+          className="w-full max-w-[400px] bg-white rounded-2xl shadow-sm border p-8">
+          
+          <h2 className="text-xl font-bold text-center mb-6 text-gray-800">{isSignUp ? "Create an account" : "Welcome back"}</h2>
+
+          {!isSignUp && (
+            <div className="flex bg-gray-100 p-1 rounded-xl mb-6 border">
+              {['email', 'phone'].map(type => (
+                <button key={type} onClick={() => {setLoginType(type); setOtpSent(false);}} 
+                  className={`flex-1 py-2.5 text-[11px] rounded-lg transition-all ${loginType === type ? 'bg-white shadow text-blue-600' : 'text-gray-500'}`}>
+                  {type.toUpperCase()}
+                </button>
+              ))}
             </div>
-            {formik.touched.email && formik.errors.email && (
-              <p className="text-xs font-semibold text-red-600">
-                {formik.errors.email}
-              </p>
-            )}
-          </div>
-          <div className="flex flex-col space-y-1 mb-4">
-            <label htmlFor="password" className="font-semibold tracking-wider">
-              Password
-            </label>
-            <div className="flex py-1">
-              <span className="flex items-center justify-center border border-gray-300 border-r-0 py-2 px-3 bg-gray-300  text-black">
-                <RiLockPasswordFill />
-              </span>
-              <input
-                type="password"
-                name="password"
-                id="password"
-                onChange={formik.handleChange}
-                onBlur={formik.handleBlur}
-                value={formik.values.password}
-                className="form-input rounded-r w-full"
-                placeholder="********"
-              />
+          )}
+
+          {loginType === 'email' ? (
+            <form onSubmit={handleAuth} className="space-y-3">
+              {isSignUp && <input type="text" placeholder="Full Name" className="w-full p-3 border rounded-xl outline-none text-[15px]" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} />}
+              <input type="email" placeholder="Email Address" className="w-full p-3 border rounded-xl outline-none text-[15px]" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} />
+              
+              <div className="relative w-full">
+                <input type={showPassword ? "text" : "password"} placeholder="Password" className="w-full p-3 border rounded-xl outline-none text-[15px] pr-10" value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})} />
+                <button type="button" className="absolute right-3 top-3.5 text-gray-400" onClick={() => setShowPassword(!showPassword)}>{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button>
+              </div>
+
+              {isSignUp && (
+                <div className="relative w-full">
+                  <input type={showConfirmPassword ? "text" : "password"} placeholder="Confirm Password" className="w-full p-3 border rounded-xl outline-none text-[15px] pr-10" value={formData.password_confirmation} onChange={(e) => setFormData({...formData, password_confirmation: e.target.value})} />
+                  <button type="button" className="absolute right-3 top-3.5 text-gray-400" onClick={() => setShowConfirmPassword(!showConfirmPassword)}>{showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button>
+                </div>
+              )}
+              
+              <label className="flex items-center gap-2 py-1 cursor-pointer">
+                <input type="checkbox" checked={termsAccepted} onChange={(e) => setTermsAccepted(e.target.checked)} className="w-4 h-4" />
+                <span className="text-[11px] text-gray-500">I agree to Terms & Conditions</span>
+              </label>
+
+              <button disabled={isButtonDisabled} className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold text-[15px] disabled:opacity-40 transition">
+                {loading ? "Please wait..." : (isSignUp ? "Create Account" : "Sign In")}
+              </button>
+            </form>
+          ) : (
+             <div className="space-y-3">
+               {!otpSent ? (
+                 <>
+                   <div className="flex border rounded-xl overflow-hidden text-[15px]">
+                     <span className="bg-gray-100 p-3.5 text-gray-500 border-r">+91</span>
+                     <input type="tel" maxLength="10" placeholder="Mobile number" className="w-full p-3.5 outline-none" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} />
+                   </div>
+                   <button disabled={loading || !termsAccepted || formData.phone.length !== 10} onClick={() => setOtpSent(true)} className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold disabled:opacity-40">Send OTP</button>
+                 </>
+               ) : (
+                 <><input type="text" maxLength="4" placeholder="Enter 4-digit OTP" className="w-full p-3 border rounded-xl text-center text-lg outline-none" value={otp} onChange={(e) => setOtp(e.target.value)} />
+                 <button className="w-full bg-green-600 text-white py-3 rounded-xl font-bold">Verify OTP</button></>
+               )}
+             </div>
+          )}
+
+          {!otpSent && (
+            <div className="mt-6 flex flex-col items-center">
+              <div className="text-[10px] text-gray-400 mb-2 font-bold tracking-widest">OR</div>
+              <GoogleLogin onSuccess={handleGoogleSuccess} />
             </div>
-            {formik.touched.password && formik.errors.password && (
-              <p className="text-xs text-red-600">{formik.errors.password}</p>
-            )}
-          </div>
-          <hr />
-            <button
-              type="submit"
-              className="px-4 py-2 block mt-3 ml-auto text-primary border border-primary hover:text-white hover:bg-primary rounded-md"
-            >
-              <span className="inline-flex justify-items-center mr-1"><FiLogIn /> </span>
-              Login
+          )}
+
+          <p className="text-center text-sm text-gray-600 mt-6">
+            {isSignUp ? "Already have an account? " : "Don't have an account? "}
+            <button onClick={() => setIsSignUp(!isSignUp)} className="text-blue-600 font-bold hover:underline">
+              {isSignUp ? "Sign in" : "Create an account"}
             </button>
-        </form>
-        }
-        <p className="text-center mt-6">Not registered? <Link to='/register' className="text-primary">Create an account</Link> </p>
+          </p>
+        </motion.div>
       </div>
-    </motion.div>
+    </GoogleOAuthProvider>
   );
 };
 

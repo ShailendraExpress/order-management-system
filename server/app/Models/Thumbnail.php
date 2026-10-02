@@ -10,6 +10,7 @@ class Thumbnail extends Model
     use HasFactory;
 
     protected $fillable = [
+        'product_id',
         'thumbnail',
     ];
 

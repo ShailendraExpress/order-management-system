@@ -13,6 +13,7 @@ class Product extends Model
         'name',
         'description',
         'price',
+        'stock',
         'category',
         'brand',
         'shipping',
@@ -23,12 +24,12 @@ class Product extends Model
 
     public function images(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
-        return $this->hasMany(Image::class);
+        return $this->hasMany(Image::class,'product_id', 'id');
     }
 
     public function thumbnail(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
-        return $this->hasOne(Thumbnail::class);
+        return $this->hasOne(Thumbnail::class, 'product_id', 'id');
     }
 
 

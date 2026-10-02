@@ -21,10 +21,21 @@ class AuthServiceProvider extends ServiceProvider
      *
      * @return void
      */
-    public function boot()
+   public function boot()
     {
         $this->registerPolicies();
 
-        //
+        Gate::before(function ($user, $ability) {
+            // Agar user ke paas 'Super Admin', 'super_admin' ya role column mein 'admin' hai, toh sab allow kar do
+            if (
+                $user->hasRole(['Super Admin', 'super_admin']) || 
+                optional($user)->role === 'admin' || 
+                optional($user)->role === 'super_admin'
+            ) {
+                return true;
+            }
+            
+            return null;
+        });
     }
 }

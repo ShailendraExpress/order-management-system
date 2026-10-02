@@ -43,7 +43,9 @@ class AuthController extends Controller
     }
 
 
-    // User Login
+  
+   
+  // User Login
     public function login(Request $request) {
 
         $fields = $request->validate([
@@ -63,14 +65,22 @@ class AuthController extends Controller
 
         $token = $user->createToken('myAppToken')->plainTextToken;
 
+        // 👇 FIX: Yahan getAllPermissions() use kiya hai taaki 'Store Manager' role ke andar ki permissions bhi mil jayein
+        $permissions = $user->getAllPermissions()->pluck('name'); // Sirf permission names ka array banayega
+        $roles = $user->getRoleNames(); // Sirf role names ka array banayega
+
+        // User object mein permissions aur roles ka clean array daal diya
+        $userData = $user->toArray();
+        $userData['permissions'] = $permissions;
+        $userData['roles'] = $roles;
+
         $response = [
-            'user' => $user,
+            'user' => $userData,
             'token' => $token
         ];
 
         return response($response, 201);
     }
-
 
     // User Logout
     public function logout(Request $request): array

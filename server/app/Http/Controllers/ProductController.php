@@ -11,7 +11,6 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
-use phpDocumentor\Reflection\Types\Boolean;
 
 class ProductController extends Controller
 {
@@ -22,129 +21,164 @@ class ProductController extends Controller
      */
     public function index(): \Illuminate\Http\JsonResponse
     {
-        // get all products
-        $products = Product::select('products.*', 'thumbnails.thumbnail')
-            ->join('thumbnails', 'products.id', '=', 'thumbnails.product_id')
+        $products = Product::with('images')
+            ->select('products.*', 'thumbnails.thumbnail')
+            ->leftJoin('thumbnails', 'products.id', '=', 'thumbnails.product_id')
+            ->orderBy('products.id', 'desc')
             ->get();
 
         return response()->json($products);
-
     }
-
-
 
     /**
      * Store a newly created resource in storage.
      *
-     * @param  StoreProductRequest  $request
-     * @return Response
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
      */
-    public function store(Request $request): Response
+    public function store(Request $request): \Illuminate\Http\JsonResponse
     {
-        // validate request data
         $fields = $request->validate([
             'name' => 'required|string',
             'description' => 'required|string',
             'price' => 'required',
+            'stock' => 'required|integer|min:0',
             'category' => 'required|string',
             'brand' => 'required|string',
             'shipping' => 'boolean',
-            // 'colors' => 'string',
-            'sku' => 'string',
-            // 'thumbnail' => 'required|image'
+            'sku' => 'string|nullable',
         ]);
 
+        $product = Product::create($fields);
+        $id = $product->id;
+        $baseUrl = env('APP_URL', 'http://localhost:8000') . '/storage/';
 
-        // get the request images
-        if ($request->has('images')) {
-
-            $baseUrl = env('APP_URL', 'http://localhost:8000') . '/storage/';
-            // store the data in the products table
-            $product = Product::create($fields);
-            $id = $product->id;
-
-            // store the thumbnail in s3
+        if ($request->hasFile('thumbnail')) {
             $thumbnail = $request->file('thumbnail');
-            $tnName = $id.'_thumbnail_'.time().rand(1, 1000).'.'.$thumbnail->extension();
-            $path = $thumbnail->storeAs('uploads/products/' . $id, $tnName, 'public'); //
-            // store the thumbnail in thumbnails table
-            $t = new Thumbnail();
-            $t->product_id = $id;
-            $t->thumbnail = $baseUrl . $path;
-            $t->save();
-            // store the thumbnail in images table
-            $image = new Image();
-            $image->product_id = $id;
-            $image->image = $baseUrl . $path;
-            $image->save();
+            $tnName = $id . '_thumbnail_' . time() . '.' . $thumbnail->extension();
+            $path = $thumbnail->storeAs('uploads/products/' . $id, $tnName, 'public');
 
+            Thumbnail::create([
+                'product_id' => $id,
+                'thumbnail' => $baseUrl . $path
+            ]);
+        }
 
-            $images = $request->file('images');
+        if ($request->hasFile('images')) {
+            foreach ($request->file('images') as $image) {
+                $imageName = $id . '_image_' . time() . rand(1, 1000) . '.' . $image->extension();
+                $path = $image->storeAs('uploads/products/' . $id, $imageName, 'public');
 
-            // loop through the images
-            foreach($images as $image) {
-                // // store the data in the products table
-                // $product = Product::create($fields);
-
-                $imageName= $id.'_image_'.time().rand(1,1000).'.'.$image->extension();
-
-                // store the images in s3
-                $path = $image->storeAs('uploads/products/' . $id, $imageName, 'public'); //
-                // store the images in the images table
-                $newImage = new Image();
-                $newImage->product_id = $id;
-                $newImage->image = $baseUrl . $path;
-                $newImage->save();
+                Image::create([
+                    'product_id' => $id,
+                    'image' => $baseUrl . $path
+                ]);
             }
         }
 
-        $response = [
-            'message' => 'Product created'
-        ];
-
-        return response($response, 201);
-
+        return response()->json(['message' => 'Product created successfully', 'product' => $product], 201);
     }
 
-
-    // GET a Single Product Function
-    public function getProduct($id) {
+    /**
+     * Display the specified resource.
+     *
+     * @param $id
+     * @return \Illuminate\Http\Response
+     */
+    public function getProduct($id)
+    {
         $product = Product::find($id);
-        if (!$product){
+        if (!$product) {
             return response([
-                'message' => 'No Product with the ID: '.$id
+                'message' => 'No Product with the ID: ' . $id
             ], 401);
         }
-        // $images = $product->images;
         $product->images;
         return response($product, 200);
     }
 
-
-
-
     /**
      * Update the specified resource in storage.
      *
-     * @param  UpdateProductRequest  $request
-     * @param Product $product
-     * @return Response
+     * @param Request $request
+     * @param $id
+     * @return \Illuminate\Http\JsonResponse
      */
-    public function update(Request $request): bool
+    public function update(Request $request, $id)
     {
-        return Product::find($request->id)->update($request->all());
+        try {
+            $product = Product::find($id);
 
+            if (!$product) {
+                return response()->json(['message' => 'Product not found'], 404);
+            }
+
+            // Update basic fields
+            $product->name = $request->input('name', $product->name);
+            $product->description = $request->input('description', $product->description);
+            $product->price = $request->input('price', $product->price);
+            $product->stock = $request->input('stock', $product->stock);
+            $product->category = $request->input('category', $product->category);
+            $product->brand = $request->input('brand', $product->brand);
+
+            if ($request->has('shipping')) {
+                $product->shipping = $request->input('shipping') ? 1 : 0;
+            }
+
+            $product->save();
+
+            $baseUrl = env('APP_URL', 'http://localhost:8000') . '/storage/';
+
+            // Thumbnail update logic
+            if ($request->hasFile('thumbnail')) {
+                $thumbnail = $request->file('thumbnail');
+                $tnName = $id . '_thumbnail_' . time() . '.' . $thumbnail->extension();
+                $path = $thumbnail->storeAs('uploads/products/' . $id, $tnName, 'public');
+
+                Thumbnail::updateOrCreate(
+                    ['product_id' => $id],
+                    ['thumbnail' => $baseUrl . $path]
+                );
+            }
+
+            return response()->json([
+                'message' => 'Product updated successfully',
+                'product' => $product
+            ], 200);
+        } catch (\Exception $e) {
+            // Yeh line 500 error ka exact reason batayegi Laravel ke log mein
+            \Log::error('Product Update Error: ' . $e->getMessage());
+
+            return response()->json([
+                'message' => 'Server Error: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
      * Remove the specified resource from storage.
      *
      * @param $id
-     * @return int
+     * @return \Illuminate\Http\JsonResponse
      */
-    public function destroy($id): int
+    public function destroy($id)
     {
-        return Product::destroy($id);
+        $product = Product::findOrFail($id);
 
+        $hasOrders = \DB::table('order_items')->where('product_id', $id)->exists();
+
+        if ($hasOrders) {
+            return response()->json([
+                'status' => false,
+                'message' => "Product '{$product->name}' cannot be deleted because it has already been ordered by a customer."
+            ], 400);
+        }
+
+        $product->delete();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Product has been successfully removed.'
+        ]);
     }
 }

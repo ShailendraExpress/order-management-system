@@ -15,9 +15,9 @@
 }
 
 .active {
-    border: solid 1px #808e9b;
+   
     border-radius: 40px;
-    color: #808e9b;
+    color: #000000;
 }
 
 .break-me {

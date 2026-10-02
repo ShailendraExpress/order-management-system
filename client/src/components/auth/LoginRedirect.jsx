@@ -1,26 +1,22 @@
-import React from "react";
-import { useSelector } from "react-redux";
-import { Navigate, Outlet } from "react-router-dom";
-
+import React from 'react';
+import { Navigate, Outlet } from 'react-router-dom';
 
 const LoginRedirect = () => {
-    const { isAdmin, user } = useSelector((state) => state.auth);
-    // const navigate = useNavigate();
+    const adminToken = localStorage.getItem('token');
+    const customerToken = localStorage.getItem('customer_token');
 
-    // if (isAdmin) {
-    //     navigate('/admin/dashboard', { replace: true });
-    // } else if (user) {
-    //     navigate('/products', {replace: true});
-    // } else {
-    //     <Outlet />
-    // }
+    // Agar Admin pehle se logged in hai, toh direct dashboard bhejo
+    if (adminToken) {
+        return <Navigate to="/admin/dashboard" replace />;
+    }
+    
+    // Agar Customer pehle se logged in hai, toh home bhejo
+    if (customerToken) {
+        return <Navigate to="/" replace />;
+    }
 
-    return (
-        // isAdmin ? navigate('/admin/dashboard', { replace: true }) : <Outlet />
-        isAdmin ? <Navigate to='/admin/dashboard' replace /> : user ? <Navigate to='/products' replace /> : <Outlet />
-    );
-
+    // Agar koi logged in nahi hai, tabhi Login page dikhao
+    return <Outlet />;
 };
-
 
 export default LoginRedirect;

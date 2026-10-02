@@ -1,3 +1,240 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+
+
+@layer utilities {
+  /* Hide scrollbar for Chrome, Safari and Opera */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  /* Hide scrollbar for IE, Edge and Firefox */
+  .no-scrollbar {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+
+  /* Professional Thin Scrollbar */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #1e293b;
+    border-radius: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #334155;
+  }
+}
+
+/* Mobile screens par card ke andar ke filter buttons ko overflow hone se rokne ke liye */
+@media (max-width: 768px) {
+    /* Saare analytics/filter button groups ko horizontal scrollable bana dega agar space kam ho */
+    .bg-slate-100, [class*="bg-slate-100"] {
+        overflow-x: auto;
+        scrollbar-width: none; /* Firefox ke liye scrollbar hide */
+    }
+    .bg-slate-100::-webkit-scrollbar {
+        display: none; /* Chrome/Safari ke liye scrollbar hide */
+    }
+}
+/* ==========================================
+   MOBILE RESPONSIVE OVERFLOW FIXES (Global)
+   ========================================== */
+@media (max-width: 768px) {
+    /* 1. Analytics filter buttons ko wrap ya scrollable banane ke liye */
+    .bg-slate-100, div[class*="bg-slate-100"] {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        max-width: 100%;
+        overflow-x: auto;
+    }
+
+    /* 2. Search input bars ko card ke andar lock karne ke liye */
+    input[type="text"], input[placeholder*="Search"] {
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+        width: 100% !important;
+    }
+
+    /* 3. Cards aur containers ko screen ke baahar jaane se rokne ke liye */
+    .bg-white, [class*="rounded-"] {
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+    }
+}
+
+/* ==========================================
+   GLOBAL CARD HEADER OVERFLOW FIX FOR MOBILE
+   ========================================== */
+@media (max-width: 768px) {
+    /* Jab bhi card header mein flex-row ya justify-between ho, woh mobile par wrap ho jaye */
+    div[class*="flex"][class*="justify-between"] {
+        flex-wrap: wrap !important;
+        gap: 10px !important;
+    }
+
+    /* Search bar aur filter elements ko card ke andar properly fit karne ke liye */
+    div[class*="flex"][class*="justify-between"] > div {
+        max-width: 100% !important;
+        width: 100% !important;
+    }
+}
+
+/* ==========================================
+   GLOBAL TABLE CUTTING / OVERFLOW FIX FOR MOBILE
+   ========================================== */
+@media (max-width: 768px) {
+    /* Table ke parent container ko horizontally scrollable banata hai */
+    div:has(> table), [class*="overflow-x"] {
+        width: 100% !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Table ko mobile par properly fit aur scrollable rakhne ke liye */
+    table {
+        width: 100% !important;
+        max-width: none !important;
+    }
+}
+
+/* ==========================================
+   MOBILE TABLE HORIZONTAL SCROLL & FIT FIX
+   ========================================== */
+@media (max-width: 768px) {
+    /* Table ke wrapper ko horizontally scrollable banata hai taaki koi column kate nahi */
+    div:has(> table), .overflow-x-auto {
+        width: 100% !important;
+        overflow-x: auto !important;
+        display: block !important;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Table ko minimum width deta hai jisse columns squish na ho kar scrollable ho jayein */
+    table {
+        min-width: 520px !important;
+        width: max-content !important;
+    }
+}
+
+/* ==========================================
+   CLEAN MOBILE TABLE SCROLL FIX (Forms untouched)
+   ========================================== */
+@media (max-width: 768px) {
+    /* Sirf aur sirf tables ke wrapper ko scrollable banayega, forms ko chhedega nahi */
+    .overflow-x-auto:has(table), table {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+    
+    /* Table cells ya rows ko cutne se bachane ke liye minimum width */
+    table {
+        min-width: 500px !important;
+    }
+}
+
+/* ==========================================
+   CLEAN RESPONSIVE CSS (Forms & Inputs Untouched)
+   ========================================== */
+
+/* Mobile screens par tables ko cutne se bachane ke liye horizontal scroll */
+@media (max-width: 768px) {
+    .overflow-x-auto, div:has(> table) {
+        width: 100% !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    table {
+        min-width: 500px !important;
+    }
+}
+
+/* ==========================================
+   MOBILE CUSTOM DATE FILTER STACK & APPLY FIX
+   ========================================== */
+/* ==========================================
+/* ==========================================
+   FINAL MOBILE DATE FILTER & APPLY BUTTON FIX
+   ========================================== */
+@media (max-width: 768px) {
+    /* Date picker inputs aur 'to' text ko 100% width dena */
+    input[placeholder*="mm/dd/yyyy"], input[placeholder*="yyyy-mm-dd"] {
+        width: 100% !important;
+        min-width: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    /* Sales analytics ke andar ke filter/date row ko wrap karna */
+    .flex-wrap, div[class*="flex"] {
+        flex-wrap: wrap !important;
+    }
+
+    /* Apply button ko card ke andar neatly niche fit karne ke liye */
+    button:has(.fa-filter), button:has(svg), button:last-child {
+        width: 100% !important;
+        margin-top: 4px !important;
+        justify-content: center !important;
+    }
+}
+
+
+
+
+
+/* ==========================================
+   GLOBAL APP STYLES & MOBILE FIXES
+   ========================================== */
+
+* {
+  box-sizing: border-box;
+}
+
+body, html {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  background-color: #f8fafc;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
+
+/* Mobile screens par tables ko cutne se bachane ke liye horizontal scroll */
+@media (max-width: 768px) {
+    .overflow-x-auto, div:has(> table) {
+        width: 100% !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    table {
+        min-width: 520px !important;
+    }
+}
+
+
+/* Global App Styles */
+* {
+  box-sizing: border-box;
+}
+
+body, html {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  background-color: #f8fafc;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
+
+
+/* input box are slim border*/
+input:focus, select:focus, textarea:focus {
+  outline: none !important;
+  box-shadow: none !important;
+  border-color: #0f172a !important; /* Yeh aapke slate-900 dark border color se match karega */
+}

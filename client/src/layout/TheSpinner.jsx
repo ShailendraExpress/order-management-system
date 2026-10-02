@@ -2,8 +2,9 @@ import React from "react";
 
 const TheSpinner = () => {
   return (
-    <div className="w-full py-20 mx-auto">
-      <div className="w-24 h-24 rounded-full mx-auto border-8 border-solid border-[#f3f3f3] border-t-8 border-t-[#3498db] animate-spin"></div>
+    <div className="w-full flex items-center justify-center py-16">
+      {/* Clean, minimalist, and fast-spinning loader */}
+      <div className="w-10 h-10 border-[3px] border-slate-200 border-t-blue-600 rounded-full animate-spin"></div>
     </div>
   );
 };

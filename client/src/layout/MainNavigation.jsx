@@ -1,242 +1,214 @@
-import React from "react";
-import { useState } from "react";
-import { NavLink } from "react-router-dom";
-import { XIcon } from "@heroicons/react/solid";
+import React, { useState, useRef, useEffect } from "react";
+import { NavLink, useNavigate, Link } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import { useSelector, useDispatch } from "react-redux";
-import { motion } from "framer-motion";
+import { XIcon } from "@heroicons/react/solid";
 
-import HambergurMenu from "../assets/HambergurMenu.svg";
-// import Logo from '../assets/logo.svg';
+import {
+  FaShoppingBag,
+  FaSearch,
+  FaBars,
+  FaUser,
+  FaBox,
+  FaCog,
+  FaSignOutAlt,
+} from "react-icons/fa";
+
 import NavCartButton from "../components/cart/NavCartButton";
-import { logout } from "../store/actions/auth-actions";
+import { logout } from "../store/actions/auth-actions"; // Admin Logout
+import { authActions } from "../store/auth-slice"; // Customer Logout
 
 const MainNavigation = () => {
   const [showNav, setShowNav] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  
+  // Ref for click-outside logic
+  const dropdownRef = useRef(null);
+
   const dispatch = useDispatch();
+  const navigate = useNavigate();
+
+const handleAdminLogout = () => {
+      // 1. Redux aur LocalStorage dono ek sath completely saaf
+      dispatch(authActions.globalLogout()); 
+      
+      // 2. Turant Login page par phek dega aur memory fresh kar dega
+      navigate('/login', { replace: true }); 
+  };
+const handleSecureLogout = () => {
+    // 1. Redux aur LocalStorage dono ek sath saaf
+    dispatch(authActions.globalLogout()); 
+    
+    // 2. Turant Login page par bhejein
+    navigate('/login', { replace: true }); 
+};
   const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
   const token = useSelector((state) => state.auth.token);
+  const isCustomerAuth = useSelector((state) => state.auth.isCustomerAuthenticated);
+  const customer = useSelector((state) => state.auth.customer);
 
-  const navHandler = () => {
-    setShowNav(!showNav);
-  };
+  // CLICK OUTSIDE LOGIC
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
-  const logoutUser = () => {
-    dispatch(logout(token));
-  };
+  const navHandler = () => setShowNav(!showNav);
 
-  const svgVariants = {
-    hidden: { rotate: -180 },
-    visible: {
-      rotate: 0,
-      transition: { duration: 1 },
-    },
-  };
+  const logoutAdmin = () => dispatch(logout(token));
 
-  const pathVariants = {
-    hidden: {
-      opacity: 0,
-      pathLength: 0,
-    },
-    visible: {
-      opacity: 1,
-      pathLength: 1,
-      transition: {
-        duration: 3,
-        ease: "easeInOut",
-      },
-    },
-  };
-
-  const buttonVariants = {
-    hover: {
-      scale: 1.1,
-      textShadow: "0px 0px 2px #ffffff",
-      boxShadow: "0px 0px 4px #243E8B",
-      transition: {
-        duration: 0.3,
-      },
-    },
+ const logoutCustomer = () => {
+    // 1. Dropdown band karein
+    setIsDropdownOpen(false);
+    
+    // 2. Naya Master Logout call karein (Redux aur LocalStorage dono saaf)
+    dispatch(authActions.globalLogout());
+    
+    // 3. Turant Login page par bhejein
+    navigate('/login', { replace: true });
   };
 
   return (
-    <div className="w-full h-[80px]">
-      <div className="flex  justify-between items-center w-full h-full px-8 sm:mb-6">
-        <div className="flex">
-          <div className="flex items-center">
-            <motion.div
-              className="w-[50px] h-[50px]"
-              drag
-              dragConstraints={{ left: 0, top: 0, right: 0, bottom: 0 }}
-              dragElastic={0.7}
-            >
-              {/* <NavLink to='/'><img src={Logo} alt="" /></NavLink> */}
-              <NavLink to="/">
-                <motion.svg
-                  height="50"
-                  width="50"
-                  version="1.1"
-                  id="Capa_1"
-                  xmlns="http://www.w3.org/2000/svg"
-                  xmlnsXlink="http://www.w3.org/1999/xlink"
-                  x="0px"
-                  y="0px"
-                  viewBox="0 0 300.004 300.004"
-                  xmlSpace="preserve"
-                  variants={svgVariants}
-                  initial="hidden"
-                  animate="visible"
-                >
-                  <motion.path
-                    d="M278.891,244.965V105.231c0-4.143-3.357-7.5-7.5-7.5h-42.398V65.597c0-4.143-3.357-7.5-7.5-7.5H189.17V47.555
-                                        c0-21.6-17.57-39.173-39.168-39.173s-39.168,17.573-39.168,39.173v10.542H78.512c-4.143,0-7.5,3.357-7.5,7.5v32.134H28.613
-                                        c-4.142,0-7.5,3.357-7.5,7.5v139.734C9.438,245.174,0,254.721,0,266.446v3.676c0,11.855,9.645,21.5,21.5,21.5h257.004
-                                        c11.855,0,21.5-9.645,21.5-21.5v-3.676C300.004,254.721,290.566,245.174,278.891,244.965z M78.512,216.954h142.98
-                                        c4.143,0,7.5-3.357,7.5-7.5v-71.111h11.411v105.075H59.602V138.342h11.41v71.111C71.012,213.596,74.369,216.954,78.512,216.954z
-                                        M263.891,112.731v130.687h-8.487V130.842c0-4.143-3.357-7.5-7.5-7.5h-18.911v-10.611H263.891z M125.834,47.555
-                                        c0-13.329,10.842-24.173,24.168-24.173s24.168,10.844,24.168,24.173v10.542h-48.336V47.555z M86.012,73.097h24.822V85.94
-                                        c0,4.143,3.357,7.5,7.5,7.5c4.143,0,7.5-3.357,7.5-7.5V73.097h48.336V85.94c0,4.143,3.357,7.5,7.5,7.5c4.143,0,7.5-3.357,7.5-7.5
-                                        V73.097h24.822v128.856H86.012V73.097z M36.113,112.731h34.899v10.611h-18.91c-4.143,0-7.5,3.357-7.5,7.5v112.575h-8.488V112.731z
-                                        M285.004,270.122c0,3.584-2.916,6.5-6.5,6.5H21.5c-3.584,0-6.5-2.916-6.5-6.5v-3.676c0-3.584,2.916-6.5,6.5-6.5h257.004
-                                        c3.584,0,6.5,2.916,6.5,6.5V270.122z"
-                    variants={pathVariants}
-                    initial="hidden"
-                    animate="visible"
-                  />
-                </motion.svg>
-              </NavLink>
-            </motion.div>
-            <motion.div
-              initial={{ y: -250 }}
-              animate={{ y: 0 }}
-              transition={{ delay: 0.2, type: "spring", stiffness: 150 }}
-            >
-              <NavLink to="/">
-                <h1 className="text-3xl font-bold ml-2 select-none">
-                  <span className="text-primary">Future</span>
-                  <span className="text-secondary-200">Shop.</span>
-                </h1>
-              </NavLink>
-            </motion.div>
-          </div>
-          <ul className="hidden md:flex items-center lg:ml-8">
-            <li>
-              <NavLink className="ml-4 p-2 lg:text-lg font-semibold" to="/">
-                Home
-              </NavLink>
-            </li>
-            <li>
-              <NavLink
-                className="ml-2 p-2 lg:text-lg font-semibold"
-                to="/about"
-              >
-                About
-              </NavLink>
-            </li>
-            <li>
-              <NavLink
-                className="ml-2 p-2 lg:text-lg font-semibold"
-                to="/products"
-              >
-                Orders
-              </NavLink>
-            </li>
-            <li>
-              {isAuthenticated && (
-                <NavLink
-                  className="ml-2 p-2 lg:text-lg font-semibold"
-                  to="/checkout"
-                >
-                  Checkout
-                </NavLink>
-              )}
-            </li>
-          </ul>
-        </div>
-        <div className="hidden md:flex">
-          {isAuthenticated && (<NavCartButton />)}
-          {!isAuthenticated && (
-            <NavLink to="/login">
-              <motion.button className="border-primary border-4 text-primary font-bold px-4 py-2 ml-2 rounded-full shadow-lg"
-                variants={buttonVariants}
-                whileHover="hover"
-              >
-                Login
-              </motion.button>
+    <header className="sticky top-0 z-50 w-full bg-white border-b border-gray-200 shadow-sm font-sans">
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="h-20 flex items-center justify-between gap-4 lg:gap-8">
+          
+          {/* 1. Left: Logo & Mobile Toggle */}
+          <div className="flex items-center gap-4">
+            <button className="lg:hidden text-gray-700 hover:text-blue-600 transition-colors" onClick={navHandler}>
+              {showNav ? <XIcon className="w-7 h-7" /> : <FaBars className="text-[1.4rem]" />}
+            </button>
+
+            <NavLink to="/" className="flex items-center gap-2 outline-none group">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-blue-600 text-white flex items-center justify-center shadow-sm group-hover:bg-blue-700 transition-colors">
+                <FaShoppingBag className="text-lg" />
+              </div>
+              <h1 className="text-xl sm:text-2xl font-black tracking-tight">
+                <span className="text-gray-900">My</span>
+                <span className="text-blue-600">SHOP</span>
+              </h1>
             </NavLink>
-          )}
-          {isAuthenticated && (
-            <motion.button
-              onClick={logoutUser}
-              className="border-primary border-4 text-primary font-bold px-4 py-2 ml-2 rounded-full shadow-lg"
-              variants={buttonVariants}
-              whileHover="hover"
-            >
-              Logout
-            </motion.button>
-          )}
-        </div>
-        <div className="md:hidden cursor-pointer" onClick={navHandler}>
-          {!showNav ? (
-            <img src={HambergurMenu} alt="" />
-          ) : (
-            <XIcon className="w-5" />
-          )}
+          </div>
+
+          {/* 2. Middle: Desktop Links & Prominent Search Bar */}
+          <div className="hidden lg:flex flex-1 items-center justify-between pl-4">
+            {/* Desktop Navigation Links */}
+            <nav className="flex items-center gap-6 xl:gap-8">
+              {["Home", "Products", "About"].map((item) => (
+                <NavLink 
+                  key={item} 
+                  to={item === "Home" ? "/" : `/${item.toLowerCase()}`} 
+                  className={({ isActive }) => 
+                    `text-sm font-bold transition-colors ${isActive ? "text-blue-600" : "text-gray-600 hover:text-gray-900"}`
+                  }
+                >
+                  {item}
+                </NavLink>
+              ))}
+            </nav>
+
+            {/* Amazon/Flipkart Style Wide Search Bar */}
+            <div className="relative flex-1 max-w-lg mx-6 group">
+              <input 
+                type="text" 
+                placeholder="Search for products, brands and more..." 
+                className="w-full pl-4 pr-12 py-2.5 rounded-md border border-gray-300 bg-gray-50 text-sm outline-none transition-all focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100" 
+              />
+              <button className="absolute right-0 top-0 h-full px-4 text-gray-400 group-focus-within:text-blue-600 hover:text-blue-600 transition-colors">
+                <FaSearch />
+              </button>
+            </div>
+          </div>
+
+          {/* 3. Right: Cart & Auth/Profile Actions */}
+          <div className="flex items-center gap-3 sm:gap-5">
+            
+            {/* HAMESHA DIKHNE WALA CART ICON */}
+            <div className="pt-1">
+              <NavCartButton />
+            </div>
+
+            {/* Profile Dropdown OR Auth Buttons */}
+            {isCustomerAuth ? (
+              <div className="relative" ref={dropdownRef}>
+                <button 
+                  onClick={() => setIsDropdownOpen(!isDropdownOpen)} 
+                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gray-900 text-white flex items-center justify-center font-bold text-sm sm:text-base border-2 border-transparent hover:border-blue-500 transition-all shadow-sm focus:outline-none"
+                >
+                  {customer?.name?.charAt(0).toUpperCase()}
+                </button>
+
+                {/* Dropdown Menu */}
+                <AnimatePresence>
+                  {isDropdownOpen && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                      transition={{ duration: 0.15, ease: "easeOut" }}
+                      className="absolute right-0 top-12 sm:top-14 w-56 bg-white rounded-lg shadow-xl border border-gray-100 py-2 z-50"
+                    >
+                      <div className="px-4 py-2 border-b border-gray-100 mb-1 bg-gray-50/50 rounded-t-lg">
+                        <p className="text-[11px] uppercase font-bold text-gray-400 tracking-wider">Signed in as</p>
+                        <p className="text-sm font-bold text-gray-900 truncate">{customer?.name}</p>
+                      </div>
+                      
+                      <Link to="/my-profile" className="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 text-sm font-medium text-gray-700 transition-colors">
+                        <FaUser className="text-gray-400" size={14}/> Profile
+                      </Link>
+                      <Link to="/my-orders" className="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 text-sm font-medium text-gray-700 transition-colors">
+                        <FaBox className="text-gray-400" size={14}/> Orders
+                      </Link>
+                      <Link to="/settings" className="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 text-sm font-medium text-gray-700 transition-colors">
+                        <FaCog className="text-gray-400" size={14}/> Settings
+                      </Link>
+                      
+                      <div className="border-t border-gray-100 my-1"></div>
+                      
+                      <button 
+                        onClick={logoutCustomer} 
+                        className="flex items-center gap-3 px-4 py-2 w-full hover:bg-red-50 text-sm font-medium text-red-600 transition-colors text-left"
+                      >
+                        <FaSignOutAlt size={14}/> Sign Out
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 sm:gap-3">
+                 {/* Guest Actions */}
+                 {!isAuthenticated && (
+                  <>
+                    <NavLink to="/login" className="hidden sm:block px-4 py-2 rounded-md text-sm font-bold text-gray-700 hover:text-blue-600 transition-colors">
+                      Log in
+                    </NavLink>
+                    <NavLink to="/register" className="px-4 py-2 rounded-md bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 shadow-sm transition-colors">
+                      Sign up
+                    </NavLink>
+                  </>
+                 )}
+                 {/* Admin Actions */}
+                 {isAuthenticated && (
+                   <button 
+                    onClick={logoutAdmin} 
+                    className="px-4 py-2 rounded-md bg-red-600 hover:bg-red-700 text-white text-sm font-bold shadow-sm transition-colors"
+                   >
+                     Admin Logout
+                   </button>
+                 )}
+              </div>
+            )}
+          </div>
+
         </div>
       </div>
-
-      <ul
-        className={
-          !showNav
-            ? "hidden"
-            : "md:hidden px-8 py-4 bg-white w-full h-[20rem] relative z-20"
-        }
-      >
-        <li className="border-b-2 border-zinc-300 w-full text-lg font-semibold text-gray-600">
-          <NavLink to="/" onClick={navHandler}>
-            Home
-          </NavLink>
-        </li>
-        <li className="border-b-2 border-zinc-300 w-full mt-4 text-lg font-semibold text-gray-600">
-          <NavLink to="/about" onClick={navHandler}>
-            About
-          </NavLink>
-        </li>
-        <li className="border-b-2 border-zinc-300 w-full mt-4 text-lg font-semibold text-gray-600">
-          <NavLink to="/products" onClick={navHandler}>
-            Orders
-          </NavLink>
-        </li>
-        <li className="border-b-2 border-zinc-300 w-full mt-4 text-lg font-semibold text-gray-600">
-          {isAuthenticated && (
-            <NavLink to="/checkout" onClick={navHandler}>
-              Checkout
-            </NavLink>
-          )}
-        </li>
-        <div className="flex flex-col items-center m-4 space-y-4">
-          {isAuthenticated && (<div onClick={navHandler}>
-            <NavCartButton />
-          </div>)}
-          {!isAuthenticated && (
-            <NavLink
-              onClick={navHandler}
-              to="/login"
-              className="border-primary border-4 text-primary font-bold px-9 py-2 ml-2 rounded-full shadow-lg"
-            >
-              Login
-            </NavLink>
-          )}
-          {isAuthenticated && (
-            <button
-              onClick={logoutUser}
-              className="border-primary border-4 text-primary font-bold px-9 py-2 ml-2 rounded-full shadow-lg"
-            >
-              Logout
-            </button>
-          )}
-        </div>
-      </ul>
-    </div>
+    </header>
   );
 };
 

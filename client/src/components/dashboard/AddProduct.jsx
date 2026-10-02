@@ -1,385 +1,443 @@
-import React, { useState } from "react";
+import React, { useState, useCallback, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import swal from "sweetalert";
+import { useDispatch, useSelector } from "react-redux";
+import api from "../../utils/api";
 
+// Icons Import
 import { FaDollarSign } from "react-icons/fa";
 import { IoMdAddCircle } from "react-icons/io";
-import { useDispatch, useSelector } from "react-redux";
+import { FiUploadCloud, FiCheck, FiPackage } from "react-icons/fi";
+import { HiChevronDoubleLeft } from "react-icons/hi";
+
+// Actions & Components Import
 import { addProduct } from "../../store/actions/products-actions";
 import TheSpinner from "../../layout/TheSpinner";
 
 const AddProduct = () => {
+  const navigate = useNavigate();
   const dispatch = useDispatch();
-  const token = useSelector((state) => state.auth.token);
-  const loading = useSelector((state) => state.ui.addPrductLoading);
-  const [tnail, setTnail] = useState("");
-  const [pImages, setPImages] = useState("");
+  const token = useSelector((state) => state.auth?.token);
+  
+  // Local submission loading state to handle button spinner smoothly
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const thumbnailHandler = (file) => {
-    console.log('thumbnail: ', file);
-    setTnail(file);
-  };
+  // 1. ALL HOOKS AT THE TOP
+  const [dynamicCategories, setDynamicCategories] = useState([]);
+  const [dynamicBrands, setDynamicBrands] = useState([]);
+  const [thumbnailPreview, setThumbnailPreview] = useState(null);
+  const [galleryPreviews, setGalleryPreviews] = useState([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [catRes, brandRes] = await Promise.all([
+          api.get('/api/v1/categories?active=1'),
+          api.get('/api/v1/brands')
+        ]);
+
+        // Check category response structure (if nested inside 'data' key)
+        const categoriesList = Array.isArray(catRes.data?.data) ? catRes.data.data : [];
+
+        // Check brand response structure
+        const brandsList = Array.isArray(brandRes.data?.data) ? brandRes.data.data : [];
+
+        setDynamicCategories(categoriesList);
+        setDynamicBrands(brandsList);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      }
+    };
+    fetchData();
+  }, []);
 
   const createRandomSKU = () => {
-    return 'SKU-' + Math.random().toString(36).substr(2, 9).toUpperCase();
-  };
-
-  const imagesHandler = (event) => {
-    const imageArray = [];
-    for (let i=0; i < event.target.files.length; i++) {
-      imageArray.push(event.target.files[i]);
-    }
-    setPImages(imageArray);
-
+    return "SKU-" + Math.random().toString(36).substring(2, 9).toUpperCase();
   };
 
   const initialValues = {
     name: "",
     description: "",
     price: "",
+    stock: 0,
     category: "",
     brand: "",
     shipping: false,
-    sku: "",
+    thumbnail: null,
+    images: [],
   };
 
   const formik = useFormik({
     initialValues,
     validationSchema: Yup.object({
-      name: Yup.string().required("Required"),
-      description: Yup.string().required("Required"),
-      price: Yup.number().required("Required"),
-      category: Yup.string().required("Required"),
-      brand: Yup.string().required("Required"),
+      name: Yup.string().required("Product title is required"),
+      description: Yup.string().min(20, "Please provide at least 20 characters").required("Description is required"),
+      price: Yup.number()
+        .typeError("Must be a valid number")
+        .required("Price is required")
+        .positive("Price must be greater than 0"),
+      stock: Yup.number().typeError("Must be a number").min(0, "Cannot be negative").required("Stock is required"),
+      category: Yup.string().required("Please select a category"),
+      brand: Yup.string().required("Please select a brand"),
+      thumbnail: Yup.mixed().required("Primary thumbnail is required"),
+      images: Yup.array().min(1, "Upload at least 1 gallery image").max(4, "Maximum 4 images allowed"),
     }),
-    onSubmit: async (values) => {
+    onSubmit: async (values, { resetForm }) => {
+      setIsSubmitting(true); // Start loading spinner
+
       const formData = new FormData();
-      formData.append('thumbnail', tnail);
+      formData.append("thumbnail", values.thumbnail);
 
-      for (let i=0; i < pImages.length; i++) {
-        formData.append('images[]', pImages[i]);
-      } 
+      values.images.forEach((file) => {
+        formData.append("images[]", file);
+      });
 
-      formData.append('name', values.name);
-      formData.append('description', values.description);
-      formData.append('price', values.price);
-      formData.append('category', values.category);
-      formData.append('brand', values.brand);
-      formData.append('sku', createRandomSKU());
-      const shippingValue = formik.values.shipping ? 1 : 0;
-      formData.append('shipping', shippingValue);
+      formData.append("name", values.name);
+      formData.append("description", values.description);
+      formData.append("price", values.price);
+      formData.append("stock", values.stock);
+      formData.append("category", values.category);
+      formData.append("brand", values.brand);
+      formData.append("sku", createRandomSKU());
+      formData.append("shipping", values.shipping ? 1 : 0);
 
       const payload = {
         product: formData,
-        token
+        token,
       };
 
       try {
         await dispatch(addProduct(payload));
-        formik.resetForm(initialValues);
-        swal({
-          title: "Product Created!",
-          text: `Product: ${values.name} CREATED!`,
-          icon: "success",
-          button: "OK!",
-        }).then(() => {
-          // navigate(window.location.pathname); // Change the path as needed
-          window.location.reload()
-        });
+        resetForm();
+        setThumbnailPreview(null);
+        setGalleryPreviews([]);
 
+  swal({
+          title: "Product Published!",
+          text: `${values.name} is now live on your store catalog.`,
+          icon: "success",
+          button: "OK", // Yahan 'OK' button aa jayega
+        }).then(() => {
+          // Jaise hi user 'OK' par click karega, wo seedha product catalog page par chale jayega
+          navigate('/admin/dashboard/products');
+        });
       } catch (error) {
-        console.log(error);
+        console.error("Failed to create product:", error);
+        swal("Publish Failed", "Something went wrong communicating with the server.", "error");
+      } finally {
+        setIsSubmitting(false); // Always stop spinner whether success or failure
       }
     },
   });
 
-  // const onDrop = useCallback((acceptedFiles) => {
-  //   if (acceptedFiles.length !== 4) {
-  //     return;
-  //   }
-  //   formik.setFieldValue("images", formik.values.images.concat(acceptedFiles))
-  // }, [formik])
+  const handleThumbnailChange = useCallback((file) => {
+    if (file) {
+      formik.setFieldValue("thumbnail", file);
+      setThumbnailPreview(URL.createObjectURL(file));
+    }
+  }, [formik]);
 
-  // const {getRootProps, getInputProps, isDragActive} = useDropzone({onDrop});
+  const handleGalleryChange = useCallback((files) => {
+    const newFiles = Array.from(files);
+
+    // Combine previous and new files into Formik state (Max 4 limit)
+    const combinedFiles = [...formik.values.images, ...newFiles].slice(0, 4);
+    formik.setFieldValue("images", combinedFiles);
+
+    // Generate new object URLs and append to previews list
+    const newPreviews = newFiles.map((file) => URL.createObjectURL(file));
+    setGalleryPreviews((prevPreviews) => [...prevPreviews, ...newPreviews].slice(0, 4));
+
+  }, [formik]);
 
   return (
-    <div>
-      <div className="flex items-center mx-4 my-8 p-8 bg-white shadow-2xl drop-shadow-md">
-        <span className="text-4xl text-primary mr-6">
-          <IoMdAddCircle />
-        </span>
-        <h2 className="uppercase text-4xl tracking-widest font-semibold">
-          Add Order
-        </h2>
-      </div>
-      <div className="flex m-4 p-8 bg-white shadow-lg">
-        <div className="w-3/4">
-          <form onSubmit={formik.handleSubmit}>
-            {/* name input */}
-            <div className="flex flex-col space-y-1 mb-8">
-              <label htmlFor="name" className="tracking-wider">
-                Order name:
-              </label>
-              <input
-                type="text"
-                name="name"
-                id="name"
-                onChange={formik.handleChange}
-                onBlur={formik.handleBlur}
-                value={formik.values.name}
-                className="form-input rounded w-full bg-gray-100"
-                placeholder="Enter product name"
-              />
-              {formik.touched.name && formik.errors.name && (
-                <p className="text-xs font-semibold text-red-500">
-                  {formik.errors.name}
-                </p>
-              )}
-            </div>
-            {/* description input */}
-            <div className="flex flex-col space-y-1 mb-8">
-              <label htmlFor="description" className="tracking-wider">
-                Description:
-              </label>
-              <textarea
-                name="description"
-                id="description"
-                onChange={formik.handleChange}
-                onBlur={formik.handleBlur}
-                value={formik.values.description}
-                className="form-textarea w-full h-52 bg-gray-100 rounded-md"
-                placeholder="Product description"
-              ></textarea>
-              {formik.touched.description && formik.errors.description && (
-                <p className="text-xs font-semibold text-red-500">
-                  {formik.errors.description}
-                </p>
-              )}
-            </div>
-            {/* price input */}
-            <div className="flex flex-col space-y-1 mb-8">
-              <label htmlFor="price" className="tracking-wider">
-                Price:
-              </label>
-              <div className="flex">
-                <span className="flex items-center justify-center border border-gray-300 border-r-0 py-2 px-3 bg-gray-300 text-black">
-                  <FaDollarSign />
-                </span>
-                <input
-                  type="number"
-                  name="price"
-                  id="price"
-                  step="any"
-                  min="0"
-                  onChange={formik.handleChange}
-                  onBlur={formik.handleBlur}
-                  value={formik.values.price}
-                  className="form-input rounded-r w-full bg-gray-100"
-                  placeholder="Product price"
-                />
-              </div>
-              {formik.touched.price && formik.errors.price && (
-                <p className="text-xs font-semibold text-red-500">
-                  {formik.errors.price}
-                </p>
-              )}
-            </div>
-            {/* category input */}
-            <div className="flex flex-col space-y-1 mb-8">
-              <label htmlFor="category" className="tracking-wider">
-                Category:
-              </label>
-              <select
-                name="category"
-                id="category"
-                onChange={formik.handleChange}
-                onBlur={formik.handleBlur}
-                value={formik.values.category}
-                className="form-select bg-gray-100"
-              >
-                <option value=""></option>
-                <option value="desktop">Desktop</option>
-                <option value="laptop">Laptop</option>
-                <option value="printer">Printer</option>
-                <option value="scanner">Scanner</option>
-                <option value="tablet">Tablet</option>
-                <option value="monitor">Monitor</option>
-              </select>
-              {formik.touched.category && formik.errors.category && (
-                <p className="text-xs font-semibold text-red-500">
-                  {formik.errors.category}
-                </p>
-              )}
-            </div>
-            {/* brand input */}
-            <div className="flex flex-col space-y-1 mb-8">
-              <label htmlFor="brand" className="tracking-wider mb-3">
-                Brand:
-              </label>
-              <div className="flex justify-between items-center">
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="radio"
-                    name="brand"
-                    id="apple"
-                    value="apple"
-                    onChange={formik.getFieldProps("brand").onChange}
-                    className="form-radio"
-                  />
-                  <label htmlFor="apple" className="tracking-widest">
-                    Apple
-                  </label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="radio"
-                    name="brand"
-                    id="dell"
-                    value="dell"
-                    onChange={formik.getFieldProps("brand").onChange}
-                    className="form-radio"
-                  />
-                  <label htmlFor="dell" className="tracking-widest">
-                    Dell
-                  </label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="radio"
-                    name="brand"
-                    id="hp"
-                    value="hp"
-                    onChange={formik.getFieldProps("brand").onChange}
-                    className="form-radio"
-                  />
-                  <label htmlFor="hp" className="tracking-widest">
-                    HP
-                  </label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="radio"
-                    name="brand"
-                    id="samsung"
-                    value="samsung"
-                    onChange={formik.getFieldProps("brand").onChange}
-                    className="form-radio"
-                  />
-                  <label htmlFor="samsung" className="tracking-widest">
-                    Samsung
-                  </label>
-                </div>
-              </div>
-              {formik.touched.brand && formik.errors.brand && (
-                <p className="text-xs font-semibold text-red-500">
-                  {formik.errors.brand}
-                </p>
-              )}
-            </div>
-            {/* shipping input */}
-            {/*<div className="flex items-center space-x-3 mb-8">*/}
-            {/*  <input*/}
-            {/*    type="checkbox"*/}
-            {/*    name="shipping"*/}
-            {/*    id="shipping"*/}
-            {/*    onChange={() => formik.setFieldValue('shipping', !formik.values.shipping)}*/}
-            {/*    value={formik.values.shipping}*/}
-            {/*    className="form-checkbox"*/}
-            {/*  />*/}
-            {/*  <label htmlFor="shipping" className="tracking-wider">*/}
-            {/*    Free shipping*/}
-            {/*  </label>*/}
-            {/*</div>*/}
-            {/* thumbnail input */}
-            <div className="flex flex-col space-y-1 mb-8">
-              <label htmlFor="thumbnail" className="tracking-wider">
-                Thumbnail:
-              </label>
-              <input
-                type="file"
-                name="thumbnail"
-                id="thumbnail"
-                accept="image/*"
-                // onChange={(event) => {
-                //   formik.setFieldValue("thumbnail", () => {
-                //     const fd = new FormData();
-                //     fd.append('thumbnail', event.currentTarget.files[0]);
-                //     return fd;
-                //   });
-                // }}
-                // onChange={(event) => {
-                //   formik.setFieldValue('thumbnail', event.target.files[0]);
-                // }}
-                onChange={(e) => thumbnailHandler(e.target.files[0])}
-                className="w-full"
-              />
-              {formik.touched.thumbnail && formik.errors.thumbnail && (
-                <p className="text-xs font-semibold text-red-500">
-                  {formik.errors.thumbnail}
-                </p>
-              )}
-            </div>
-            {/* images input */}
-            <div className="flex flex-col space-y-1 mb-8">
-              <label htmlFor="images" className="tracking-wider">
-                Product Images:
-              </label>
-              <input
-                type="file"
-                name="images[]"
-                id="images"
-                accept="image/*"
-                // onChange={(event) => {
-                //   // formik.setFieldValue("images", event.currentTarget.files)
-                //   formik.setFieldValue("images", () => {
-                //     const fd = new FormData();
-                //     fd.append('images', event.target.files);
-                //     return fd;
-                //   })
-                // }}
-                onChange={imagesHandler}
-                multiple
-              />
-              <p className="text-xs">Upload 4 images *</p>
-              {/* <div className="w-full h-auto bg-gray-500" {...getRootProps()} >
-                <input {...getInputProps()} />
-                {
-                  isDragActive ?
-                  <p>Drop the images here ...</p> :
-                  <p>Drag 'n' Drop 4 images here, or click the select images</p>
-                }
-              </div> */}
-              {/* <Dropzone className="w-full h-auto rounded" accept="image/*" onDrop={(acceptedFiles) => {
-                    if (acceptedFiles.length === 0) {
-                        return;
-                    }
-                    formik.setFieldValue('images', formik.values.images.concat(acceptedFiles))
-                }}>
-                    {() => {
-                        if (formik.values.images.length === 0) {
-                            return <p>Upload 4 product images</p>
-                        }
-                    }}
-                </Dropzone> */}
-              {/* {formik.touched.thumbnail && formik.errors.thumbnail && (
-                <p className="text-xs font-semibold text-red-500">
-                  {formik.errors.thumbnail}
-                </p>
-              )} */}
-            </div>
-            <hr />
-            {loading ? <TheSpinner /> : 
-            <button
-              type="submit"
-              className="px-4 py-2 block mt-3 ml-auto text-primary border border-primary hover:text-white hover:bg-primary rounded-md"
-            >
-              Create
-            </button>
-            }
-          </form>
+    <div className="p-4 sm:p-6 w-full flex-1 bg-slate-50 min-h-screen font-sans text-slate-800">
+
+      {/* PAGE HEADER */}
+      <div className="mb-6 bg-white border border-slate-200/80 rounded-xl px-6 py-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+
+        <div className="flex items-center gap-3.5">
+          <div className="w-11 h-11 rounded-lg bg-slate-900 flex items-center justify-center text-white shadow-2xs flex-shrink-0">
+            <IoMdAddCircle className="text-xl" />
+          </div>
+          <div>
+            <h1 className="text-lg font-bold text-slate-900 tracking-tight">Add New Product</h1>
+            <p className="text-xs text-slate-500 mt-0.5">Create a new product card and publish it to your catalog.</p>
+          </div>
         </div>
+
+        {/* Action Buttons */}
+        <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+          {/* Back Navigation Button */}
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="inline-flex items-center justify-center h-[42px] px-5 rounded-lg border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 text-sm font-semibold transition-all shadow-2xs cursor-pointer"
+          >
+            <HiChevronDoubleLeft className="mr-1.5" /> Back
+          </button>
+          
+          <button
+            type="button"
+            onClick={formik.handleSubmit}
+            disabled={isSubmitting}
+            className="inline-flex items-center justify-center gap-2 h-[42px] px-6 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold whitespace-nowrap flex-shrink-0 shadow-xs transition-all active:scale-98 disabled:opacity-50 cursor-pointer border border-slate-900"
+          >
+            {isSubmitting ? <TheSpinner /> : <><FiCheck className="text-base text-slate-300 flex-shrink-0" /> <span>Publish Product</span></>}
+          </button>
+        </div>
+
       </div>
+
+      <form onSubmit={formik.handleSubmit}>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+          {/* LEFT COLUMN: CORE DETAILS */}
+          <div className="lg:col-span-2 space-y-6">
+
+            {/* General Info Card */}
+            <div className="bg-white border border-slate-200/80 rounded-xl p-6 shadow-xs space-y-5">
+              <h2 className="text-sm font-bold uppercase tracking-wider text-slate-800 border-b border-slate-100 pb-3">
+                General Information
+              </h2>
+
+              <div>
+                <label htmlFor="name" className="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">
+                  Product Title <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="name"
+                  {...formik.getFieldProps("name")}
+                  placeholder="e.g. Apple MacBook Air M3 (16GB RAM, 512GB SSD)"
+                  className={`w-full px-3.5 py-2.5 bg-slate-50/50 border ${formik.touched.name && formik.errors.name ? "border-rose-500 focus:ring-rose-500" : "border-slate-300 focus:ring-slate-900 focus:border-slate-900"
+                    } rounded-lg text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:bg-white transition-all`}
+                />
+                {formik.touched.name && formik.errors.name && (
+                  <p className="text-xs font-medium text-rose-500 mt-1.5">{formik.errors.name}</p>
+                )}
+              </div>
+
+              <div>
+                <label htmlFor="description" className="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">
+                  Detailed Description <span className="text-rose-500">*</span>
+                </label>
+                <textarea
+                  id="description"
+                  rows="6"
+                  {...formik.getFieldProps("description")}
+                  placeholder="Detail the product specifications, hardware performance, and box contents..."
+                  className={`w-full px-3.5 py-2.5 bg-slate-50/50 border ${formik.touched.description && formik.errors.description ? "border-rose-500 focus:ring-rose-500" : "border-slate-300 focus:ring-slate-900 focus:border-slate-900"
+                    } rounded-lg text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:bg-white transition-all resize-y`}
+                />
+                {formik.touched.description && formik.errors.description && (
+                  <p className="text-xs font-medium text-rose-500 mt-1.5">{formik.errors.description}</p>
+                )}
+              </div>
+            </div>
+
+            {/* Pricing & Logistics Card */}
+            <div className="bg-white border border-slate-200/80 rounded-xl p-6 shadow-xs space-y-5">
+              <h2 className="text-sm font-bold uppercase tracking-wider text-slate-800 border-b border-slate-100 pb-3">
+                Pricing & Shipping
+              </h2>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 items-start">
+                <div>
+                  <label htmlFor="price" className="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">
+                    Base Price (USD) <span className="text-rose-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                      <FaDollarSign />
+                    </div>
+                    <input
+                      type="number"
+                      id="price"
+                      step="0.01"
+                      {...formik.getFieldProps("price")}
+                      placeholder="0.00"
+                      className={`w-full pl-9 pr-4 py-2.5 bg-slate-50/50 border ${formik.touched.price && formik.errors.price ? "border-rose-500 focus:ring-rose-500" : "border-slate-300 focus:ring-slate-900 focus:border-slate-900"
+                        } rounded-lg text-sm font-mono text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:bg-white transition-all`}
+                    />
+                  </div>
+                  {formik.touched.price && formik.errors.price && (
+                    <p className="text-xs font-medium text-rose-500 mt-1.5">{formik.errors.price}</p>
+                  )}
+                </div>
+
+                {/* Stock Quantity Input Field */}
+                <div>
+                  <label htmlFor="stock" className="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">
+                    Stock Quantity <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    id="stock"
+                    min="0"
+                    {...formik.getFieldProps("stock")}
+                    className={`w-full px-3.5 py-2.5 bg-slate-50/50 border ${
+                      formik.touched.stock && formik.errors.stock ? "border-rose-500 focus:ring-rose-500" : "border-slate-300 focus:ring-slate-900 focus:border-slate-900"
+                    } rounded-lg text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:bg-white transition-all`}
+                  />
+                  {formik.touched.stock && formik.errors.stock && (
+                    <p className="text-xs font-medium text-rose-500 mt-1.5">{formik.errors.stock}</p>
+                  )}
+                </div>
+
+                <div className="pt-6 sm:col-span-2">
+                  <label className="relative flex items-center gap-3 p-3 rounded-lg border border-slate-200 bg-slate-50/50 cursor-pointer hover:bg-slate-100 transition-colors">
+                    <input
+                      type="checkbox"
+                      {...formik.getFieldProps("shipping")}
+                      checked={formik.values.shipping}
+                      className="w-4 h-4 text-slate-900 rounded border-slate-300 focus:ring-slate-900"
+                    />
+                    <div>
+                      <span className="block text-sm font-semibold text-slate-800">Requires Physical Shipping</span>
+                      <span className="block text-xs text-slate-500">Enable if product requires courier dispatch</span>
+                    </div>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          {/* RIGHT COLUMN: MEDIA & TAXONOMY */}
+          <div className="space-y-6">
+
+            {/* Organization Card */}
+            <div className="bg-white border border-slate-200/80 rounded-xl p-6 shadow-xs space-y-5">
+              <h2 className="text-sm font-bold uppercase tracking-wider text-slate-800 border-b border-slate-100 pb-3">
+                Organization
+              </h2>
+
+              <div>
+                <label htmlFor="category" className="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">
+                  Category <span className="text-rose-500">*</span>
+                </label>
+                <select
+                  id="category"
+                  {...formik.getFieldProps("category")}
+                  className={`w-full px-3.5 py-2.5 bg-slate-50/50 border ${formik.touched.category && formik.errors.category ? "border-rose-500" : "border-slate-300 focus:ring-slate-900 focus:border-slate-900"
+                    } rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-2 focus:bg-white transition-all`}
+                >
+                  <option value="" disabled>Select primary category</option>
+
+                  {/* Dynamic Categories Mapping */}
+                  {dynamicCategories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.title}
+                    </option>
+                  ))}
+                </select>
+                {formik.touched.category && formik.errors.category && (
+                  <p className="text-xs font-medium text-rose-500 mt-1.5">{formik.errors.category}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-2">
+                  Brand <span className="text-rose-500">*</span>
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {dynamicBrands.map((brand) => (
+                    <label key={brand.id} className="cursor-pointer">
+                      <input
+                        type="radio"
+                        name="brand"
+                        value={brand.title}
+                        onChange={formik.handleChange}
+                        checked={formik.values.brand === brand.title}
+                        className="sr-only peer"
+                      />
+                      <div className="px-3 py-2 border rounded-lg text-center text-xs peer-checked:bg-slate-900 peer-checked:text-white transition-all">
+                        {brand.title}
+                      </div>
+                    </label>
+                  ))}
+                </div>
+                {formik.touched.brand && formik.errors.brand && (
+                  <p className="text-xs font-medium text-rose-500 mt-1.5">{formik.errors.brand}</p>
+                )}
+              </div>
+            </div>
+
+            {/* Media Uploads Card */}
+            <div className="bg-white border border-slate-200/80 rounded-xl p-6 shadow-xs space-y-5">
+              <h2 className="text-sm font-bold uppercase tracking-wider text-slate-800 border-b border-slate-100 pb-3">
+                Product Assets
+              </h2>
+
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">
+                  Primary Thumbnail <span className="text-rose-500">*</span>
+                </label>
+                <div className="relative border-2 border-dashed border-slate-300 hover:border-slate-900 rounded-xl p-4 text-center bg-slate-50/50 transition-colors group cursor-pointer">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleThumbnailChange(e.target.files[0])}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  />
+                  {thumbnailPreview ? (
+                    <div className="relative h-32 w-full flex items-center justify-center">
+                      <img src={thumbnailPreview} alt="Thumbnail preview" className="max-h-full rounded-md object-contain shadow-2xs" />
+                    </div>
+                  ) : (
+                    <div className="py-4">
+                      <FiUploadCloud className="mx-auto text-2xl text-slate-400 group-hover:text-slate-900 transition-colors mb-2" />
+                      <p className="text-xs font-semibold text-slate-700">Click to upload thumbnail</p>
+                      <p className="text-[10px] text-slate-400 mt-0.5">PNG, JPG, WEBP up to 5MB</p>
+                    </div>
+                  )}
+                </div>
+                {formik.touched.thumbnail && formik.errors.thumbnail && (
+                  <p className="text-xs font-medium text-rose-500 mt-1.5">{formik.errors.thumbnail}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">
+                  Gallery Showcase (Max 4)
+                </label>
+                <div className="relative border-2 border-dashed border-slate-300 hover:border-slate-900 rounded-xl p-4 text-center bg-slate-50/50 transition-colors group cursor-pointer">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={(e) => handleGalleryChange(e.target.files)}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                  />
+                  <div className="py-2">
+                    <FiPackage className="mx-auto text-2xl text-slate-400 group-hover:text-slate-900 transition-colors mb-1" />
+                    <p className="text-xs font-semibold text-slate-700">Upload gallery shots</p>
+                  </div>
+                </div>
+
+                {galleryPreviews.length > 0 && (
+                  <div className="grid grid-cols-4 gap-2 mt-3">
+                    {galleryPreviews.map((src, idx) => (
+                      <div key={idx} className="relative aspect-square rounded-lg border border-slate-200 overflow-hidden bg-white">
+                        <img src={src} alt="Gallery item" className="w-full h-full object-cover" />
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {formik.touched.images && formik.errors.images && (
+                  <p className="text-xs font-medium text-rose-500 mt-1.5">{formik.errors.images}</p>
+                )}
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+      </form>
     </div>
   );
 };

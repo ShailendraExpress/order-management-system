@@ -54,26 +54,20 @@ export const register = (payload) => {
 
 export const logout = (token) => {
     return async dispatch => {
-        await api.get('/sanctum/csrf-cookie');
+        try {
+            await api.get('/sanctum/csrf-cookie');
 
-        const logout = async () => {
-            const response = await api.post('/api/logout', null, {
+         
+            await api.post('/api/logout', null, {
                 headers: {
                     Authorization: 'Bearer ' + token
                 },
-                // withCredentials: true
             });
-            const message = response.data;
-            return message;
-        };
-
-        try {
-            await logout();
-            dispatch(authActions.logout());
-            
         } catch (error) {
-            console.log(error);
+            console.warn("Backend logout warning:", error.message);
+        } finally {
+            sessionStorage.setItem('logout_toast', 'You have been successfully logged out.');
+            dispatch(authActions.globalLogout()); 
         }
-
-    }
+    };
 };

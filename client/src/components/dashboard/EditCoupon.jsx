@@ -1,0 +1,311 @@
+import React, { useState, useEffect } from 'react';
+import { useFormik } from 'formik';
+import * as Yup from 'yup';
+import { FiTag, FiCheck, FiInfo, FiPercent, FiDollarSign } from 'react-icons/fi';
+import { useNavigate, useParams } from 'react-router-dom';
+import swal from 'sweetalert';
+
+// Import the secure global API instance and CSRF helper
+import api, { getCsrfCookie } from '../../utils/api';
+
+const EditCoupon = () => {
+  const navigate = useNavigate();
+  const { id } = useParams();
+  const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(true);
+
+  // Default initial values for the form state
+  const [initialData, setInitialData] = useState({
+    code: '',
+    discountType: 'percentage',
+    discountValue: '',
+    minOrderAmount: '',
+    usageLimit: '',
+    expiryDate: '',
+    status: 'Active',
+  });
+
+  // Fetch existing coupon details on component mount
+  useEffect(() => {
+    const fetchCoupon = async () => {
+      try {
+        // Secure CSRF Cookie handshake for Laravel Sanctum
+        if (typeof getCsrfCookie === 'function') {
+          await getCsrfCookie();
+        }
+
+        // Fetch coupon data using the global api instance
+        const response = await api.get(`/api/v1/coupons/${id}`);
+
+        const responseData = response.data;
+        const data = responseData?.data || responseData;
+
+        if (data) {
+          const cleanDate = data.expiry_date ? data.expiry_date.split('T')[0].split(' ')[0] : '';
+          
+          setInitialData({
+            code: data.code || '',
+            discountType: data.discount_type || 'percentage',
+            discountValue: data.discount_value ?? '',
+            minOrderAmount: data.min_order_amount ?? '',
+            usageLimit: data.usage_limit ?? '',
+            expiryDate: cleanDate,
+            status: data.status || 'Active',
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching coupon:", error);
+        swal("Error!", "Could not load coupon details.", "error");
+        navigate(-1);
+      } finally {
+        setFetching(false);
+      }
+    };
+
+    if (id) {
+      fetchCoupon();
+    } else {
+      setFetching(false);
+    }
+  }, [id, navigate]);
+
+  // Formik hook initialized safely
+  const formik = useFormik({
+    initialValues: initialData,
+    enableReinitialize: true, 
+    validationSchema: Yup.object({
+      code: Yup.string().matches(/^[A-Z0-9]+$/, "Code must be uppercase alphanumeric").required('Required'),
+      discountValue: Yup.number().positive().required('Required'),
+      expiryDate: Yup.date().required('Required'),
+    }),
+    onSubmit: async (values) => {
+      setLoading(true);
+      try {
+        // Update coupon data using the secure global api instance
+        await api.put(`/api/v1/coupons/${id}`, values);
+        
+        swal("Success!", "Coupon updated successfully!", "success");
+        navigate(-1);
+      } catch (error) {
+        console.error("Error updating coupon:", error);
+        swal("Error!", "Update failed.", "error");
+      } finally {
+        setLoading(false);
+      }
+    },
+  });
+
+  return (
+    <div className="p-4 sm:p-6 w-full flex-1 bg-slate-50 font-sans text-slate-800 min-h-screen">
+      
+      {/* HEADER CARD - ALWAYS VISIBLE (Never disappears or causes white screen) */}
+      <div className="mb-6 bg-white border border-slate-200/80 rounded-xl px-6 py-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3.5">
+          <div className="w-11 h-11 rounded-lg bg-slate-900 flex items-center justify-center text-white shadow-2xs">
+            <FiTag className="text-xl" />
+          </div>
+          <div>
+            <h1 className="text-lg font-bold text-slate-900 tracking-tight">Edit Coupon</h1>
+            <p className="text-xs text-slate-500 mt-0.5">Update promotional discount code details.</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <button 
+            type="button" 
+            onClick={() => navigate(-1)} 
+            disabled={loading}
+            className="h-[42px] px-5 rounded-lg border border-slate-300 bg-white text-slate-700 text-sm font-semibold hover:bg-slate-50 transition-all shadow-2xs disabled:opacity-50 cursor-pointer"
+          >
+            Cancel
+          </button>
+          
+          <button 
+            type="button"
+            onClick={formik.handleSubmit} 
+            disabled={loading || fetching}
+            className={`h-[42px] px-6 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold flex items-center gap-2 shadow-xs transition-all cursor-pointer ${(loading || fetching) ? 'opacity-70 cursor-not-allowed' : ''}`}
+          >
+            {loading ? (
+               <span>Updating...</span> 
+            ) : (
+              <>
+                <FiCheck className="text-base text-slate-300" /> Update Coupon
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* DYNAMIC CONTENT AREA: SHOWS SPINNER WHILE FETCHING, ELSE SHOWS THE FORM */}
+      {fetching ? (
+        <div className="bg-white border border-slate-200/80 rounded-xl p-20 text-center shadow-xs">
+          <div className="inline-block w-6 h-6 border-2 border-slate-300 border-t-slate-900 rounded-full animate-spin mr-2 align-middle"></div>
+          <span className="text-sm font-semibold text-slate-500">Loading coupon details...</span>
+        </div>
+      ) : (
+        <form onSubmit={formik.handleSubmit}>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            {/* LEFT COLUMN: MAIN FORM SETTINGS */}
+            <div className="lg:col-span-2 space-y-6">
+              
+              <div className="bg-white border border-slate-200/80 rounded-xl p-6 shadow-xs space-y-5">
+                <h2 className="text-sm font-bold uppercase tracking-wider text-slate-800 border-b border-slate-100 pb-3">
+                  General Settings
+                </h2>
+                
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">
+                    Coupon Code <span className="text-rose-500">*</span>
+                  </label>
+                  <input 
+                    type="text"
+                    {...formik.getFieldProps("code")} 
+                    onChange={(e) => formik.setFieldValue("code", e.target.value.toUpperCase())}
+                    className={`w-full px-3.5 py-2.5 bg-slate-50/50 border font-mono uppercase ${
+                      formik.touched.code && formik.errors.code ? "border-rose-500 focus:ring-rose-500" : "border-slate-300 focus:ring-slate-900 focus:border-slate-900"
+                    } rounded-lg text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:bg-white transition-all`} 
+                    placeholder="e.g. MEGA2026" 
+                  />
+                  {formik.touched.code && formik.errors.code && (
+                    <p className="text-xs font-medium text-rose-500 mt-1.5">{formik.errors.code}</p>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">
+                      Discount Type
+                    </label>
+                    <select 
+                      {...formik.getFieldProps("discountType")} 
+                      className="w-full px-3.5 py-2.5 bg-slate-50/50 border border-slate-300 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:bg-white transition-all cursor-pointer"
+                    >
+                      <option value="percentage">Percentage Off (%)</option>
+                      <option value="fixed">Fixed Amount Off (₹ / $)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">
+                      Discount Value <span className="text-rose-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                        {formik.values.discountType === 'percentage' ? <FiPercent /> : <FiDollarSign />}
+                      </div>
+                      <input 
+                        type="number"
+                        step="any"
+                        {...formik.getFieldProps("discountValue")} 
+                        className={`w-full pl-9 pr-4 py-2.5 bg-slate-50/50 border font-mono ${
+                          formik.touched.discountValue && formik.errors.discountValue ? "border-rose-500 focus:ring-rose-500" : "border-slate-300 focus:ring-slate-900 focus:border-slate-900"
+                        } rounded-lg text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:bg-white transition-all`} 
+                      />
+                    </div>
+                    {formik.touched.discountValue && formik.errors.discountValue && (
+                      <p className="text-xs font-medium text-rose-500 mt-1.5">{formik.errors.discountValue}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white border border-slate-200/80 rounded-xl p-6 shadow-xs space-y-5">
+                <h2 className="text-sm font-bold uppercase tracking-wider text-slate-800 border-b border-slate-100 pb-3">
+                  Requirements & Limits
+                </h2>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">
+                      Minimum Order Amount
+                    </label>
+                    <input 
+                      type="number"
+                      {...formik.getFieldProps("minOrderAmount")} 
+                      className="w-full px-3.5 py-2.5 bg-slate-50/50 border border-slate-300 rounded-lg text-sm font-mono text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:bg-white transition-all" 
+                      placeholder="e.g. 1499 (Optional)" 
+                    />
+                    {formik.touched.minOrderAmount && formik.errors.minOrderAmount && (
+                      <p className="text-xs font-medium text-rose-500 mt-1.5">{formik.errors.minOrderAmount}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">
+                      Total Usage Limit
+                    </label>
+                    <input 
+                      type="number"
+                      {...formik.getFieldProps("usageLimit")} 
+                      className="w-full px-3.5 py-2.5 bg-slate-50/50 border border-slate-300 rounded-lg text-sm font-mono text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:bg-white transition-all" 
+                      placeholder="e.g. 1000 (Optional)" 
+                    />
+                    {formik.touched.usageLimit && formik.errors.usageLimit && (
+                      <p className="text-xs font-medium text-rose-500 mt-1.5">{formik.errors.usageLimit}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            {/* RIGHT COLUMN: STATUS & EXPIRY SETTINGS */}
+            <div className="space-y-6">
+              
+              <div className="bg-white border border-slate-200/80 rounded-xl p-6 shadow-xs space-y-5">
+                <h2 className="text-sm font-bold uppercase tracking-wider text-slate-800 border-b border-slate-100 pb-3">
+                  Status & Expiry
+                </h2>
+                
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">
+                    Coupon Status
+                  </label>
+                  <select 
+                    {...formik.getFieldProps("status")} 
+                    className="w-full px-3.5 py-2.5 bg-slate-50/50 border border-slate-300 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:bg-white transition-all font-medium cursor-pointer"
+                  >
+                    <option value="Active">Active immediately</option>
+                    <option value="Draft">Save as Draft / Inactive</option>
+                    <option value="Expired">Expired</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">
+                    Expiry Date <span className="text-rose-500">*</span>
+                  </label>
+                  <input 
+                    type="date"
+                    {...formik.getFieldProps("expiryDate")} 
+                    className={`w-full px-3.5 py-2.5 bg-slate-50/50 border ${
+                      formik.touched.expiryDate && formik.errors.expiryDate ? "border-rose-500 focus:ring-rose-500" : "border-slate-300 focus:ring-slate-900 focus:border-slate-900"
+                    } rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-2 focus:bg-white transition-all`} 
+                  />
+                  {formik.touched.expiryDate && formik.errors.expiryDate && (
+                    <p className="text-xs font-medium text-rose-500 mt-1.5">{formik.errors.expiryDate}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* INFO ALERT CARD */}
+              <div className="bg-blue-50/80 border border-blue-200/80 rounded-xl p-4 flex gap-3 text-slate-700 shadow-2xs">
+                <FiInfo className="text-blue-600 text-lg flex-shrink-0 mt-0.5" />
+                <div className="text-xs leading-relaxed space-y-1">
+                  <p className="font-bold text-blue-950">Editing Coupons</p>
+                  <p>Changes will apply to future checkouts immediately. Existing orders using this coupon will not be affected.</p>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+        </form>
+      )}
+    </div>
+  );
+};
+
+export default EditCoupon;
